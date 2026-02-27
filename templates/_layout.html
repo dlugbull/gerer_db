@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block title %}
+        <title>Layout</title>
+    {% endblock %}
+    
+</head>
+<body>
+    <header>
+        <h1>Gérer les bases de données</h1>
+        {% include "_nav.html" %}
+    </header>
+    {% block body %}
+        Site de gestion de base de donnée mysql
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,21 @@
+{% extends "_layout.html" %}
+
+{% block title %}Databases{% endblock %}
+
+{% block body %}
+<h1>Databases</h1>
+<table>
+    <tr>
+        <th>Nom</th>
+        <th>Nombre de tables</th>
+        <th>Actions</th>
+    </tr>
+    {% for db in databases %}
+        <tr>
+            <td>{{ db.nom }}</td>
+            <td>{{ db.nb_tables }}</td>
+            <td><a href="">Voir</a> <a href="">supprimer</a></td>
+        </tr>
+    {% endfor %}
+</table>
+{% endblock %}
