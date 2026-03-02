@@ -14,7 +14,12 @@
         <tr>
             <td>{{ db.nom }}</td>
             <td>{{ db.nb_tables }}</td>
-            <td><a href="">Voir</a> <a href="">supprimer</a></td>
+            <td>
+                <form action="/databases/tables" method="post">
+                    <input type="hidden" name="database" value="{{ db.nom }}">
+                    <button>Voir</button>
+            </form>
+            <a href="">supprimer</a></td>
         </tr>
     {% endfor %}
 </table>

@@ -35,5 +35,15 @@ def databases():
     
     return render_template('databases.html', databases=databases)
 
+@app.route('/databases/tables', methods=['GET', 'POST'])
+def tables():
+    database = request.form.get('database')
+    mycursor = get_db().cursor()
+    mycursor.execute(f"USE {database}")
+    mycursor.execute("SHOW TABLES")
+    list_tables = mycursor.fetchall()
+    return render_template("table.html", tables=list_tables, database=database)
+
+
 if __name__ == '__main__':
     app.run()
