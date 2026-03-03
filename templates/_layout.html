@@ -6,15 +6,24 @@
     {% block title %}
         <title>Layout</title>
     {% endblock %}
-    
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.css') }}">
 </head>
 <body>
-    <header>
-        <h1>Gérer les bases de données</h1>
-        {% include "_nav.html" %}
-    </header>
+{% include('_nav.html') %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for categorie, message in messages %}
+            <div role="alert" class="alert {{ categorie }}" style="margin-top:25px;">
+                <strong>{{ message }}</strong>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+<div class="container">
     {% block body %}
         Site de gestion de base de donnée mysql
     {% endblock %}
+</div>
+
 </body>
 </html>

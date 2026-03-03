@@ -1,0 +1,34 @@
+{% extends "_layout.html" %}
+{% block title %}
+    <title>Table {{ table }}</title>
+{% endblock %}
+
+{% block body %}
+
+    <table class="table table-hover">
+        <thead class="thead-dark">
+        <tr>
+            {% for key in keys %}
+                <th>{{ key }}</th>
+            {% endfor %}
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for i in range(len_content) %}
+            <tr>
+                {% for value in values[i] %}
+                    <td>{{ value }}</td>
+                {% endfor %}
+                <td>
+                    <form action="/database/table/delete_elt" method="post">
+                        <input value="{{ database }}" name="database" hidden>
+                        <input value="{{ table }}" name="table" hidden>
+                        <button class="btn btn-danger" type="submit" value="{{ values[i][0] }}" name="id">Supprimer</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

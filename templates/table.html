@@ -5,17 +5,31 @@
 {% endblock %}
 
 {% block body %}
-    <h1>Databases</h1>
-    <table>
+    <h3>Tables de {{ database }}</h3>
+    <br><br>
+    <table class="table table-hover">
+        <thead class="thead-dark">
         <tr>
-            <td>Table<td>
-            <td>Actions</td>
+            <th>Table</th>
+            <th>Actions</th>
         </tr>
+        </thead>
+        <tbody>
         {% for table in tables %}
             <tr>
-                <td>{{ table.Tables_in_bdd_dlugbull }}</td>
-                <td></td>
+                <td>{{ table }}</td>
+                <td>
+                    <form action="/database/table/show" method="post">
+                        <input type="text" value="{{ database }}" name="database" hidden>
+                        <button class="btn btn-success" type="submit" value="{{ table }}" name="table">Voir</button>
+                    </form>
+                    <form action="/database/table/delete" method="post">
+                        <input type="text" value="{{ database }}" name="database" hidden>
+                        <button class="btn btn-danger" type="submit" value="{{ table }}" name="table">Supprimer</button>
+                    </form>
+                </td>
             </tr>
         {% endfor %}
+        </tbody>
     </table>
 {% endblock %}

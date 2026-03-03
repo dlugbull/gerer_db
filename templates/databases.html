@@ -1,26 +1,33 @@
 {% extends "_layout.html" %}
 
-{% block title %}Databases{% endblock %}
+{% block title %}
+    <title>Databases</title>
+{% endblock %}
 
 {% block body %}
-<h1>Databases</h1>
-<table>
-    <tr>
-        <th>Nom</th>
-        <th>Nombre de tables</th>
-        <th>Actions</th>
-    </tr>
-    {% for db in databases %}
+    <h3>Databases</h3>
+    <br><br>
+    <table class="table table-hover">
+        <thead class="thead-dark">
         <tr>
-            <td>{{ db.nom }}</td>
-            <td>{{ db.nb_tables }}</td>
-            <td>
-                <form action="/databases/tables" method="post">
-                    <input type="hidden" name="database" value="{{ db.nom }}">
-                    <button>Voir</button>
-            </form>
-            <a href="">supprimer</a></td>
+            <th>Nom</th>
+            <th>Nombre de tables</th>
+            <th>Actions</th>
         </tr>
-    {% endfor %}
-</table>
+        </thead>
+        <tbody>
+        {% for db in databases %}
+            <tr>
+                <td>{{ db.nom }}</td>
+                <td>{{ db.nb_tables }}</td>
+                <td>
+                    <form action="/databases/tables" method="post">
+                        <input type="hidden" name="database" value="{{ db.nom }}">
+                        <button type="submit" class="btn btn-success">Voir</button>
+                    </form>
+                    <a href="">supprimer</a></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}
