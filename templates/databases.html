@@ -25,7 +25,11 @@
                         <input type="hidden" name="database" value="{{ db.nom }}">
                         <button type="submit" class="btn btn-success">Voir</button>
                     </form>
-                    <a href="">supprimer</a></td>
+                    <form action="/database/delete" method="post">
+                        <input type="hidden" name="database" value="{{ db.nom }}">
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </form>
+                    </td>
             </tr>
         {% endfor %}
         </tbody>

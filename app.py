@@ -90,5 +90,18 @@ def delete_elt():
     len_content = len(content)
     return render_template("show_table.html", table=table, len_content=len_content, keys=keys, values=values, database=database)
 
+@app.route('/database/delete', methods=['GET', 'POST'])
+def delete():
+    database = request.form.get('database')
+    mycursor = get_db().cursor()
+    mycursor.execute(f"SHOW TABLES IN {database}")
+    list_tables = mycursor.fetchall()
+    if len(list_tables) == 0:
+        mycursor.execute(f"DROP DATABASE {database}")
+        get_db().commit()
+    else:
+        flash(f"Impossible de supprimer la base de donnée {database}", "alert-warning")
+    return redirect(url_for('databases'))
+
 if __name__ == '__main__':
     app.run()
