@@ -1,0 +1,18 @@
+{% extends "_layout.html" %}
+{% block title %}
+    <title>Connexion à la base de donnée</title>
+{% endblock %}
+
+{% block body %}
+    <h3>Se connecter</h3>
+    <br><br>
+    <form action="/login" method="post">
+        <label for="login">Login :</label><br>
+        <input type="text" name="login" id="login" class="form-control" required><br>
+        <label for="password">Password :</label><br>
+        <input type="password" name="password" id="password" class="form-control" required><br>
+        <label for="host">Host :</label><br>
+        <input type="text" name="host" id="host" class="form-control" value="localhost" required><br>
+        <button type="submit" class="btn btn-success">Se connecter</button>
+    </form>
+{% endblock %}

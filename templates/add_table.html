@@ -1,0 +1,17 @@
+{% extends "_layout.html" %}
+{% block title %}
+    <title>Créer une table</title>
+{% endblock %}
+
+{% block body %}
+    <h3>Créer une table dans {{ database }}</h3>
+    <br><br>
+    <form action="/database/table/valid_add" method="post">
+        <input value="{{ database }}" name="database" id="database" type="text" hidden>
+        <label for="nom">Nom de la table</label>
+        <input id="nom" name="nom" required class="form-control"><br>
+        <label for="nb_colonnes">Nombre de colonnes :</label><br>
+        <input id="nb_colonnes" name="nb_colonnes" type="number" onchange="form_table()">
+        <div id="form_table"></div>
+    </form>
+{% endblock %}

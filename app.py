@@ -1,9 +1,51 @@
-from flask import Flask, request, render_template, redirect, url_for, abort, flash, session, g
-from flask import Blueprint
+from flask import Flask, request, render_template, redirect, url_for, flash, g
 import pymysql.cursors
 
-from connect_db import *
+global login
+login=""
 
+global password
+password=""
+
+global host
+host=""
+
+
+def get_db():
+    if 'db' not in g:
+        g.db =  pymysql.connect(
+            host=host,
+            user=login,
+            password=password,
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor
+        )
+    return g.db
+
+def activate_db_options(db):
+    cursor = db.cursor()
+    # Vérifier et activer l'option ONLY_FULL_GROUP_BY si nécessaire
+    cursor.execute("SHOW VARIABLES LIKE 'sql_mode'")
+    result = cursor.fetchone()
+    if result:
+        modes = result['Value'].split(',')
+        if 'ONLY_FULL_GROUP_BY' not in modes:
+            print('MYSQL : il manque le mode ONLY_FULL_GROUP_BY')   # mettre en commentaire
+            cursor.execute("SET sql_mode=(SELECT CONCAT(@@sql_mode, ',ONLY_FULL_GROUP_BY'))")
+            db.commit()
+        else:
+            print('MYSQL : mode ONLY_FULL_GROUP_BY  ok')   # mettre en commentaire
+    # Vérifier et activer l'option lower_case_table_names si nécessaire
+    cursor.execute("SHOW VARIABLES LIKE 'lower_case_table_names'")
+    result = cursor.fetchone()
+    if result:
+        if result['Value'] != '0':
+            print('MYSQL : valeur de la variable globale lower_case_table_names differente de 0')   # mettre en commentaire
+            cursor.execute("SET GLOBAL lower_case_table_names = 0")
+            db.commit()
+        else :
+            print('MYSQL : variable globale lower_case_table_names=0  ok')    # mettre en commentaire
+    cursor.close()
 app = Flask(__name__)
 app.secret_key = 'une cle(token) : grain de sel(any random string)'
 
@@ -16,7 +58,17 @@ def close_connection(exception):
 
 @app.route('/')
 def layout():
-    return render_template('_layout.html')
+    return render_template('connection.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    global login
+    login = request.form.get('login')
+    global password
+    password = request.form.get('password')
+    global host
+    host = request.form.get('host')
+    return redirect('/databases')
 
 @app.route('/databases')
 def databases():
@@ -26,9 +78,10 @@ def databases():
     databases=[]
     for database in list_databases:
         db = database["Database"]
-        mycursor.execute(f"USE {db}")
-        mycursor.execute("SHOW TABLES")
-        databases.append({"nom" : db, "nb_tables" : len(mycursor.fetchall())})
+        if db not in ["information_schema", "mysql", "performance_schema", "sys"]:
+            mycursor.execute(f"USE {db}")
+            mycursor.execute("SHOW TABLES")
+            databases.append({"nom" : db, "nb_tables" : len(mycursor.fetchall())})
 
     return render_template('databases.html', databases=databases)
 
@@ -50,10 +103,16 @@ def show_table():
     mycursor.execute(f"USE {database}")
     mycursor.execute(f"SELECT * FROM {table}")
     content = mycursor.fetchall()
-    keys = list(content[0].keys())
-    values = [list(content[i].values()) for i in range(len(content))]
-    len_content = len(content)
-    return render_template("show_table.html", table=table, len_content=len_content, keys=keys, values=values, database=database)
+    if content is not None and len(content) > 0:
+        keys = list(content[0].keys())
+        values = [list(content[i].values()) for i in range(len(content))]
+        len_content = len(content)
+        return render_template("show_table.html", table=table, len_content=len_content, keys=keys, values=values, database=database)
+    flash(f"La table {table} est vide", "alert-warning")
+    mycursor.execute("SHOW TABLES")
+    list_tables = mycursor.fetchall()
+    list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
+    return render_template("table.html", tables=list_tables, database=database)
 
 @app.route('/database/table/delete', methods=['GET', 'POST'])
 def delete_table():
@@ -102,6 +161,63 @@ def delete():
     else:
         flash(f"Impossible de supprimer la base de donnée {database}", "alert-warning")
     return redirect(url_for('databases'))
+
+
+@app.route('/database/add', methods=['GET'])
+def add_database():
+    return render_template('add_database.html')
+
+@app.route('/database/add', methods=['POST'])
+def valid_add_database():
+    name = request.form.get('nom')
+    mycursor = get_db().cursor()
+    try:
+        mycursor.execute(f"CREATE DATABASE {name}")
+    except Exception as e:
+        flash("Vous n'avez pas la permission de créer une base de donnée", "alert-warning")
+    return redirect(url_for('databases'))
+
+@app.route('/database/table/add', methods=['GET', 'POST'])
+def add_table():
+    database = request.form.get('database')
+    return render_template("add_table.html", database=database)
+
+@app.route('/database/table/valid_add', methods=['POST'])
+def valid_add_table():
+    nom = request.form.get('nom')
+    database = request.form.get('database')
+    nb_col = int(request.form.get('nb_colonnes'))
+    colonnes=[]
+    for i in range(1, nb_col+1):
+        temp=[]
+        temp.append(request.form.get('nom-colonne-' + str(i)))
+        temp.append(request.form.get('type-colonne-' + str(i)))
+        temp.append(request.form.get('primary-key-' + str(i))) #on ou None
+        colonnes.append(temp)
+    primary_key = [i[0] for i in colonnes if i[2]=="on"]
+    if len(primary_key)==0:
+        flash("Veuillez renseigner au moins une clé primaire", "alert-warning")
+        return render_template("add_table.html", database=database)
+
+    mycursor = get_db().cursor()
+    mycursor.execute(f"USE {database}")
+    sql=f'''
+    CREATE TABLE {nom}(
+    '''
+    for colonne in colonnes:
+        sql+=f"{colonne[0]} {colonne[1]}, "
+    sql+="PRIMARY KEY ("
+    for primary in primary_key:
+        sql+=f"{primary}, "
+    sql=sql[:-2]
+    sql+="));"
+
+    mycursor.execute(sql)
+    get_db().commit()
+    mycursor.execute("SHOW TABLES")
+    list_tables = mycursor.fetchall()
+    list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
+    return render_template("table.html", tables=list_tables, database=database)
 
 if __name__ == '__main__':
     app.run()

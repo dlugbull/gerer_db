@@ -6,6 +6,10 @@
 
 {% block body %}
     <h3>Tables de {{ database }}</h3>
+    <form action="/database/table/add" method="post">
+        <input type="text" name="database" id="database" value="{{ database }}" hidden>
+        <button type="submit" class="btn btn-success">Créer une table</button>
+    </form>
     <br><br>
     <table class="table table-hover">
         <thead class="thead-dark">

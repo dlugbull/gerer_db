@@ -1,0 +1,14 @@
+{% extends "_layout.html" %}
+
+{% block title %}
+    <title>Créer une base de données</title>
+{% endblock %}
+
+{% block body %}
+    <h3>Créer une base de données</h3><br><br>
+    <form action="/database/add", method="post">
+        <label for="nom">Nom :</label><br>
+        <input type="text" name="nom" id="nom" placeholder="Nom de la base de donnée" required class="form-control"><br>
+        <button type="submit" class="btn btn-success">Créer</button>
+    </form>
+{% endblock %}
