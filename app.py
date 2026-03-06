@@ -80,7 +80,8 @@ def login():
     global host
     host = request.form.get('host')
     try:
-        get_db().cursor()
+        mycursor = get_db().cursor()
+        mycursor.close()
     except Exception as e:
         flash("Identifiants incorrects", "alert-warning")
         return redirect(url_for("connect"))
@@ -103,6 +104,7 @@ def databases():
             mycursor.execute("SHOW TABLES")
             databases.append({"nom" : db, "nb_tables" : len(mycursor.fetchall())})
 
+    mycursor.close()
     return render_template('databases.html', databases=databases)
 
 
@@ -114,6 +116,7 @@ def tables():
     mycursor.execute("SHOW TABLES")
     list_tables = mycursor.fetchall()
     list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
+    mycursor.close()
     return render_template("table.html", tables=list_tables, database=database)
 
 
@@ -129,7 +132,7 @@ def show_table():
     mycursor.execute(f"DESCRIBE {table};")
     description = mycursor.fetchall()
 
-
+    mycursor.close()
     if content is not None and len(content) > 0:
         keys = list(content[0].keys())
         values = [list(content[i].values()) for i in range(len(content))]
@@ -152,6 +155,7 @@ def delete_table():
     mycursor.execute("SHOW TABLES")
     list_tables = mycursor.fetchall()
     list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
+    mycursor.close()
     return render_template("table.html", tables=list_tables, database=database)
 
 
@@ -172,6 +176,7 @@ def delete_elt():
     keys = list(content[0].keys())
     values = [list(content[i].values()) for i in range(len(content))]
     len_content = len(content)
+    mycursor.close()
     return render_template("show_table.html", table=table, len_content=len_content, keys=keys, values=values, database=database)
 
 
@@ -186,6 +191,7 @@ def delete():
         get_db().commit()
     else:
         flash(f"Impossible de supprimer la base de donnée {database}", "alert-warning")
+    mycursor.close()
     return redirect(url_for('databases'))
 
 
@@ -202,6 +208,7 @@ def valid_add_database():
         mycursor.execute(f"CREATE DATABASE {name}")
     except Exception as e:
         flash("Vous n'avez pas la permission de créer une base de donnée", "alert-warning")
+    mycursor.close()
     return redirect(url_for('databases'))
 
 
@@ -246,6 +253,7 @@ def valid_add_table():
     mycursor.execute("SHOW TABLES")
     list_tables = mycursor.fetchall()
     list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
+    mycursor.close()
     return render_template("table.html", tables=list_tables, database=database)
 
 
@@ -265,6 +273,7 @@ def vider():
                 mycursor.commit()
             except Exception as e:
                 continue
+    mycursor.close()
     return render_template("table.html", database=database)
 
 
