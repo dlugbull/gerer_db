@@ -55,7 +55,7 @@ app.secret_key = 'une cle(token) : grain de sel(any random string)'
 
 @app.teardown_appcontext
 def close_connection(exception):
-    db = getattr(g, '_database', None)
+    db = g.pop('db', None)
     if db is not None:
         db.close()
 
