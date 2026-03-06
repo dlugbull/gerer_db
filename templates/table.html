@@ -10,6 +10,10 @@
         <input type="text" name="database" id="database" value="{{ database }}" hidden>
         <button type="submit" class="btn btn-success">Créer une table</button>
     </form>
+    <form action="/database/vider" method="post">
+        <input type="text" name="database" id="database" value="{{ database }}" hidden>
+        <button class="btn btn-danger" type="submit">Vider la base de données</button>
+    </form>
     <br><br>
     <table class="table table-hover">
         <thead class="thead-dark">

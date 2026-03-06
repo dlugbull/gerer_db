@@ -1,8 +1,8 @@
 from flask import Flask, request, render_template, redirect, url_for, flash, g
 import pymysql.cursors
 
-global login
-login=""
+global user_id
+user_id=""
 
 global password
 password=""
@@ -15,12 +15,13 @@ def get_db():
     if 'db' not in g:
         g.db =  pymysql.connect(
             host=host,
-            user=login,
+            user=user_id,
             password=password,
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
         )
     return g.db
+
 
 def activate_db_options(db):
     cursor = db.cursor()
@@ -46,6 +47,8 @@ def activate_db_options(db):
         else :
             print('MYSQL : variable globale lower_case_table_names=0  ok')    # mettre en commentaire
     cursor.close()
+
+
 app = Flask(__name__)
 app.secret_key = 'une cle(token) : grain de sel(any random string)'
 
@@ -56,22 +59,39 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
+
 @app.route('/')
-def layout():
+def connect():
+    global user_id
+    user_id=""
+    global password
+    password=""
+    global host
+    host=""
     return render_template('connection.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    global login
-    login = request.form.get('login')
+    global user_id
+    user_id = request.form.get('login')
     global password
     password = request.form.get('password')
     global host
     host = request.form.get('host')
+    try:
+        get_db().cursor()
+    except Exception as e:
+        flash("Identifiants incorrects", "alert-warning")
+        return redirect(url_for("connect"))
     return redirect('/databases')
+
 
 @app.route('/databases')
 def databases():
+    if user_id=="" or password=="" or host=="":
+        flash("Veuillez vous connecter", "alert-warning")
+        return redirect(url_for("connect"))
     mycursor = get_db().cursor()
     mycursor.execute("SHOW DATABASES")
     list_databases = mycursor.fetchall()
@@ -85,6 +105,7 @@ def databases():
 
     return render_template('databases.html', databases=databases)
 
+
 @app.route('/databases/tables', methods=['GET', 'POST'])
 def tables():
     database = request.form.get('database')
@@ -95,6 +116,7 @@ def tables():
     list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
     return render_template("table.html", tables=list_tables, database=database)
 
+
 @app.route('/database/table/show', methods=['GET', 'POST'])
 def show_table():
     table = request.form.get('table')
@@ -103,16 +125,18 @@ def show_table():
     mycursor.execute(f"USE {database}")
     mycursor.execute(f"SELECT * FROM {table}")
     content = mycursor.fetchall()
+
+    mycursor.execute(f"DESCRIBE {table};")
+    description = mycursor.fetchall()
+
+
     if content is not None and len(content) > 0:
         keys = list(content[0].keys())
         values = [list(content[i].values()) for i in range(len(content))]
         len_content = len(content)
-        return render_template("show_table.html", table=table, len_content=len_content, keys=keys, values=values, database=database)
-    flash(f"La table {table} est vide", "alert-warning")
-    mycursor.execute("SHOW TABLES")
-    list_tables = mycursor.fetchall()
-    list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
-    return render_template("table.html", tables=list_tables, database=database)
+        return render_template("show_table.html", table=table, len_content=len_content, keys=keys, values=values, database=database, description=description)
+    return render_template("show_table.html", table=table, database=database, description=description)
+
 
 @app.route('/database/table/delete', methods=['GET', 'POST'])
 def delete_table():
@@ -129,6 +153,7 @@ def delete_table():
     list_tables = mycursor.fetchall()
     list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
     return render_template("table.html", tables=list_tables, database=database)
+
 
 @app.route('/database/table/delete_elt', methods=['GET', 'POST'])
 def delete_elt():
@@ -149,6 +174,7 @@ def delete_elt():
     len_content = len(content)
     return render_template("show_table.html", table=table, len_content=len_content, keys=keys, values=values, database=database)
 
+
 @app.route('/database/delete', methods=['GET', 'POST'])
 def delete():
     database = request.form.get('database')
@@ -167,6 +193,7 @@ def delete():
 def add_database():
     return render_template('add_database.html')
 
+
 @app.route('/database/add', methods=['POST'])
 def valid_add_database():
     name = request.form.get('nom')
@@ -177,10 +204,12 @@ def valid_add_database():
         flash("Vous n'avez pas la permission de créer une base de donnée", "alert-warning")
     return redirect(url_for('databases'))
 
+
 @app.route('/database/table/add', methods=['GET', 'POST'])
 def add_table():
     database = request.form.get('database')
     return render_template("add_table.html", database=database)
+
 
 @app.route('/database/table/valid_add', methods=['POST'])
 def valid_add_table():
@@ -219,5 +248,25 @@ def valid_add_table():
     list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
     return render_template("table.html", tables=list_tables, database=database)
 
+
+@app.route("/database/vider", methods=['GET', 'POST'])
+def vider():
+    database = request.form.get('database')
+    mycursor = get_db().cursor()
+    mycursor.execute(f"USE {database}")
+    mycursor.execute(f"SHOW TABLES")
+    content = mycursor.fetchall()
+    while content is not None and content != [] and content != ():
+        mycursor.execute(f"SHOW TABLES")
+        content = mycursor.fetchall()
+        for table in content:
+            try:
+                mycursor.execute(f"DROP TABLE {table[f"Tables_in_{database}"]}")
+                mycursor.commit()
+            except Exception as e:
+                continue
+    return render_template("table.html", database=database)
+
+
 if __name__ == '__main__':
-    app.run()
+    app.run(host="0.0.0.0", port=8000, debug=True)

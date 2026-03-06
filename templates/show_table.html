@@ -9,27 +9,50 @@
     <table class="table table-hover">
         <thead class="thead-dark">
         <tr>
-            {% for key in keys %}
-                <th>{{ key }}</th>
-            {% endfor %}
-            <th>Actions</th>
+            <th>Field</th><th>Type</th><th>Null</th><th>Default</th><th>Extra</th>
         </tr>
         </thead>
         <tbody>
-        {% for i in range(len_content) %}
+        {% for ligne in description %}
             <tr>
-                {% for value in values[i] %}
-                    <td>{{ value }}</td>
-                {% endfor %}
-                <td>
-                    <form action="/database/table/delete_elt" method="post">
-                        <input value="{{ database }}" name="database" hidden>
-                        <input value="{{ table }}" name="table" hidden>
-                        <button class="btn btn-danger" type="submit" value="{{ values[i][0] }}" name="id">Supprimer</button>
-                    </form>
-                </td>
+                <td>{{ ligne.Field }}</td>
+                <td>{{ ligne.Type }}</td>
+                <td>{{ ligne.Null }}</td>
+                <td>{{ ligne.Default }}</td>
+                <td>{{ ligne.Extra }}</td>
             </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table><br><br>
+
+
+
+    {% if len_content is defined and len_content>0 %}
+        <table class="table table-hover">
+            <thead class="thead-dark">
+            <tr>
+                {% for key in keys %}
+                    <th>{{ key }}</th>
+                {% endfor %}
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for i in range(len_content) %}
+                <tr>
+                    {% for value in values[i] %}
+                        <td>{{ value }}</td>
+                    {% endfor %}
+                    <td>
+                        <form action="/database/table/delete_elt" method="post">
+                            <input value="{{ database }}" name="database" hidden>
+                            <input value="{{ table }}" name="table" hidden>
+                            <button class="btn btn-danger" type="submit" value="{{ values[i][0] }}" name="id">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
 {% endblock %}
