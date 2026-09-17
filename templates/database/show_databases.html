@@ -6,7 +6,7 @@
 
 {% block body %}
     <h3>Databases</h3>
-    <form action="/database/add" method="get">
+    <form action="/databases/add" method="get">
         <button type="submit" class="btn btn-success">Créer</button>
     </form>
     <br><br>
@@ -24,11 +24,11 @@
                 <td>{{ db.nom }}</td>
                 <td>{{ db.nb_tables }}</td>
                 <td>
-                    <form action="/databases/tables" method="post">
+                    <form action="/databases/set" method="post">
                         <input type="hidden" name="database" value="{{ db.nom }}">
                         <button type="submit" class="btn btn-success">Voir</button>
                     </form>
-                    <form action="/database/delete" method="post">
+                    <form action="/databases/delete" method="post">
                         <input type="hidden" name="database" value="{{ db.nom }}">
                         <button type="submit" class="btn btn-danger">Supprimer</button>
                     </form>

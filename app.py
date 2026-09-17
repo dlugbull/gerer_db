@@ -1,27 +1,16 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, g
+from flask import Flask, request, render_template, redirect, url_for, flash, g, session
 import pymysql.cursors
-
-global user_id
-user_id=""
-
-global password
-password=""
-
-global host
-host=""
-
 
 def get_db():
     if 'db' not in g:
         g.db =  pymysql.connect(
-            host=host,
-            user=user_id,
-            password=password,
+            host=session['host'],
+            user=session['user_id'],
+            password=session['password'],
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor
         )
     return g.db
-
 
 def activate_db_options(db):
     cursor = db.cursor()
@@ -48,10 +37,8 @@ def activate_db_options(db):
             print('MYSQL : variable globale lower_case_table_names=0  ok')    # mettre en commentaire
     cursor.close()
 
-
 app = Flask(__name__)
 app.secret_key = 'une cle(token) : grain de sel(any random string)'
-
 
 @app.teardown_appcontext
 def close_connection(exception):
@@ -62,37 +49,32 @@ def close_connection(exception):
 
 @app.route('/')
 def connect():
-    global user_id
-    user_id=""
-    global password
-    password=""
-    global host
-    host=""
+    session['user_id'] = ""
+    session['password'] = ""
+    session['host'] = ""
+
     return render_template('connection.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    global user_id
-    user_id = request.form.get('login')
-    global password
-    password = request.form.get('password')
-    global host
-    host = request.form.get('host')
+    session['user_id'] = request.form.get('login')
+    session['password'] = request.form.get('password')
+    session['host'] = request.form.get('host')
     try:
         mycursor = get_db().cursor()
         mycursor.close()
     except Exception as e:
         flash("Identifiants incorrects", "alert-warning")
         return redirect(url_for("connect"))
-    return redirect('/databases')
+    return redirect('/databases/show')
 
 
-@app.route('/databases')
+@app.route('/databases/show')
 def databases():
-    if user_id=="" or password=="" or host=="":
+    if session['user_id']=="" or session['password']=="" or session['host']=="":
         flash("Veuillez vous connecter", "alert-warning")
-        return redirect(url_for("connect"))
+        return redirect('/')
     mycursor = get_db().cursor()
     mycursor.execute("SHOW DATABASES")
     list_databases = mycursor.fetchall()
@@ -105,31 +87,33 @@ def databases():
             databases.append({"nom" : db, "nb_tables" : len(mycursor.fetchall())})
 
     mycursor.close()
-    return render_template('databases.html', databases=databases)
+    return render_template('database/show_databases.html', databases=databases)
 
+@app.route('/databases/set', methods=['POST'])
+def set_db():
+    session['database'] = request.form.get('database')
+    return redirect('/tables/show')
 
-@app.route('/databases/tables', methods=['GET', 'POST'])
+@app.route('/tables/show', methods=['GET', 'POST'])
 def tables():
-    database = request.form.get('database')
     mycursor = get_db().cursor()
-    mycursor.execute(f"USE {database}")
+    mycursor.execute(f"USE {session['database']}")
     mycursor.execute("SHOW TABLES")
     list_tables = mycursor.fetchall()
-    list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
+    list_tables = [table[f"Tables_in_{session['database']}"] for table in list_tables]
     mycursor.close()
-    return render_template("table.html", tables=list_tables, database=database)
+    return render_template("table/show_tables.html", tables=list_tables)
 
 
-@app.route('/database/table/show', methods=['GET', 'POST'])
+@app.route('/tables/show_one', methods=['POST'])
 def show_table():
-    table = request.form.get('table')
-    database = request.form.get('database')
+    session['table'] = request.form.get('table')
     mycursor = get_db().cursor()
-    mycursor.execute(f"USE {database}")
-    mycursor.execute(f"SELECT * FROM {table}")
+    mycursor.execute(f"USE {session['database']}")
+    mycursor.execute(f"SELECT * FROM {session['table'] }")
     content = mycursor.fetchall()
 
-    mycursor.execute(f"DESCRIBE {table};")
+    mycursor.execute(f"DESCRIBE {session['table'] };")
     description = mycursor.fetchall()
 
     mycursor.close()
@@ -137,91 +121,77 @@ def show_table():
         keys = list(content[0].keys())
         values = [list(content[i].values()) for i in range(len(content))]
         len_content = len(content)
-        return render_template("show_table.html", table=table, len_content=len_content, keys=keys, values=values, database=database, description=description)
-    return render_template("show_table.html", table=table, database=database, description=description)
+        return render_template("table/show_one_table.html", table=session['table'] , len_content=len_content, keys=keys, values=values, description=description)
+    return render_template("table/show_one_table.html", table=session['table'] , description=description)
 
 
-@app.route('/database/table/delete', methods=['GET', 'POST'])
+@app.route('/tables/delete', methods=['POST'])
 def delete_table():
-    database = request.form.get('database')
-    table = request.form.get('table')
     mycursor = get_db().cursor()
-    mycursor.execute(f"USE {database}")
+    mycursor.execute(f"USE {session['database'] }")
     try:
-        mycursor.execute(f"DROP TABLE {table}")
+        mycursor.execute(f"DROP TABLE {session['table'] }")
         get_db().commit()
     except Exception as e:
-        flash(f"La table {table} n'a pas pu être supprimée", "alert-warning")
-    mycursor.execute("SHOW TABLES")
-    list_tables = mycursor.fetchall()
-    list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
+        flash(f"La table {session['table'] } n'a pas pu être supprimée", "alert-warning")
     mycursor.close()
-    return render_template("table.html", tables=list_tables, database=database)
+    return redirect('/tables/show')
 
 
-@app.route('/database/table/delete_elt', methods=['GET', 'POST'])
+@app.route('/tables/delete_elt', methods=['POST'])
 def delete_elt():
-    database = request.form.get('database')
-    table = request.form.get('table')
     id = request.form.get('id')
     mycursor = get_db().cursor()
-    mycursor.execute(f"USE {database}")
+    mycursor.execute(f"USE {session['database'] }")
     try:
-        mycursor.execute(f"DELETE FROM {table} WHERE id = {id}")
+        mycursor.execute(f"DELETE FROM {session['table'] } WHERE id = {id}")
         get_db().commit()
     except Exception as e:
         flash(f"L'élément d'id {id} n'a pas pu être supprimé", "alert-warning")
-    mycursor.execute(f"SELECT * FROM {table}")
-    content = mycursor.fetchall()
-    keys = list(content[0].keys())
-    values = [list(content[i].values()) for i in range(len(content))]
-    len_content = len(content)
     mycursor.close()
-    return render_template("show_table.html", table=table, len_content=len_content, keys=keys, values=values, database=database)
+    return redirect('tables/show_one')
 
 
-@app.route('/database/delete', methods=['GET', 'POST'])
+@app.route('/databases/delete', methods=['GET', 'POST'])
 def delete():
-    database = request.form.get('database')
+    session['database']  = request.form.get('database')
     mycursor = get_db().cursor()
-    mycursor.execute(f"SHOW TABLES IN {database}")
+    mycursor.execute(f"SHOW TABLES IN {session['database']}")
     list_tables = mycursor.fetchall()
     if len(list_tables) == 0:
-        mycursor.execute(f"DROP DATABASE {database}")
+        mycursor.execute(f"DROP DATABASE {session['database']}")
         get_db().commit()
     else:
-        flash(f"Impossible de supprimer la base de donnée {database}", "alert-warning")
+        flash(f"Impossible de supprimer la base de donnée {session['database']}", "alert-warning")
     mycursor.close()
-    return redirect(url_for('databases'))
+    return redirect('/databases/show')
 
 
-@app.route('/database/add', methods=['GET'])
+@app.route('/databases/add', methods=['GET'])
 def add_database():
-    return render_template('add_database.html')
+    return render_template('database/add_database.html')
 
 
-@app.route('/database/add', methods=['POST'])
+@app.route('/databases/add', methods=['POST'])
 def valid_add_database():
     name = request.form.get('nom')
     mycursor = get_db().cursor()
     try:
         mycursor.execute(f"CREATE DATABASE {name}")
     except Exception as e:
-        flash("Vous n'avez pas la permission de créer une base de donnée", "alert-warning")
+        flash("Vous n'avez pas la permission de créer cette base de donnée", "alert-warning")
     mycursor.close()
-    return redirect(url_for('databases'))
+    return redirect('/databases/show')
 
 
-@app.route('/database/table/add', methods=['GET', 'POST'])
+@app.route('/tables/add', methods=['POST'])
 def add_table():
-    database = request.form.get('database')
-    return render_template("add_table.html", database=database)
+    return render_template("table/add_table.html")
 
 
-@app.route('/database/table/valid_add', methods=['POST'])
+@app.route('/tables/valid_add', methods=['POST'])
 def valid_add_table():
     nom = request.form.get('nom')
-    database = request.form.get('database')
     nb_col = int(request.form.get('nb_colonnes'))
     colonnes=[]
     for i in range(1, nb_col+1):
@@ -233,10 +203,10 @@ def valid_add_table():
     primary_key = [i[0] for i in colonnes if i[2]=="on"]
     if len(primary_key)==0:
         flash("Veuillez renseigner au moins une clé primaire", "alert-warning")
-        return render_template("add_table.html", database=database)
+        return redirect('/tables/add')
 
     mycursor = get_db().cursor()
-    mycursor.execute(f"USE {database}")
+    mycursor.execute(f"USE {session['database']}")
     sql=f'''
     CREATE TABLE {nom}(
     '''
@@ -247,21 +217,16 @@ def valid_add_table():
         sql+=f"{primary}, "
     sql=sql[:-2]
     sql+="));"
-
     mycursor.execute(sql)
     get_db().commit()
-    mycursor.execute("SHOW TABLES")
-    list_tables = mycursor.fetchall()
-    list_tables = [table[f"Tables_in_{database}"] for table in list_tables]
     mycursor.close()
-    return render_template("table.html", tables=list_tables, database=database)
+    return redirect('/tables/show')
 
 
-@app.route("/database/vider", methods=['GET', 'POST'])
+@app.route("/databases/vider", methods=['GET', 'POST'])
 def vider():
-    database = request.form.get('database')
     mycursor = get_db().cursor()
-    mycursor.execute(f"USE {database}")
+    mycursor.execute(f"USE {session['database']}")
     mycursor.execute(f"SHOW TABLES")
     content = mycursor.fetchall()
     while content is not None and content != [] and content != ():
@@ -269,12 +234,12 @@ def vider():
         content = mycursor.fetchall()
         for table in content:
             try:
-                mycursor.execute(f"DROP TABLE {table[f"Tables_in_{database}"]}")
-                mycursor.commit()
+                mycursor.execute(f"DROP TABLE {table[f"Tables_in_{session['database']}"]}")
+                get_db().commit()
             except Exception as e:
                 continue
     mycursor.close()
-    return render_template("table.html", database=database)
+    return redirect('/databases/show')
 
 
 if __name__ == '__main__':

@@ -44,9 +44,7 @@
                         <td>{{ value }}</td>
                     {% endfor %}
                     <td>
-                        <form action="/database/table/delete_elt" method="post">
-                            <input value="{{ database }}" name="database" hidden>
-                            <input value="{{ table }}" name="table" hidden>
+                        <form action="/tables/delete_elt" method="post">
                             <button class="btn btn-danger" type="submit" value="{{ values[i][0] }}" name="id">Supprimer</button>
                         </form>
                     </td>

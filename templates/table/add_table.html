@@ -6,8 +6,7 @@
 {% block body %}
     <h3>Créer une table dans {{ database }}</h3>
     <br><br>
-    <form action="/database/table/valid_add" method="post">
-        <input value="{{ database }}" name="database" id="database" type="text" hidden>
+    <form action="/tables/valid_add" method="post">
         <label for="nom">Nom de la table</label>
         <input id="nom" name="nom" required class="form-control"><br>
         <label for="nb_colonnes">Nombre de colonnes :</label><br>

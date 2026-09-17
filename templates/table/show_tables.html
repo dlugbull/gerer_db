@@ -6,12 +6,10 @@
 
 {% block body %}
     <h3>Tables de {{ database }}</h3>
-    <form action="/database/table/add" method="post">
-        <input type="text" name="database" id="database" value="{{ database }}" hidden>
+    <form action="/tables/add" method="post">
         <button type="submit" class="btn btn-success">Créer une table</button>
     </form>
-    <form action="/database/vider" method="post">
-        <input type="text" name="database" id="database" value="{{ database }}" hidden>
+    <form action="/databases/vider" method="post">
         <button class="btn btn-danger" type="submit">Vider la base de données</button>
     </form>
     <br><br>
@@ -27,12 +25,10 @@
             <tr>
                 <td>{{ table }}</td>
                 <td>
-                    <form action="/database/table/show" method="post">
-                        <input type="text" value="{{ database }}" name="database" hidden>
+                    <form action="/tables/show_one" method="post">
                         <button class="btn btn-success" type="submit" value="{{ table }}" name="table">Voir</button>
                     </form>
-                    <form action="/database/table/delete" method="post">
-                        <input type="text" value="{{ database }}" name="database" hidden>
+                    <form action="/tables/delete" method="post">
                         <button class="btn btn-danger" type="submit" value="{{ table }}" name="table">Supprimer</button>
                     </form>
                 </td>
