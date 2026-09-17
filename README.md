@@ -3,4 +3,4 @@ A website with python-flask and mysql which permits to connect to mysql and to m
 
 <br><br>
 LUGBULL Damien<br>
-February 2026 - now
+February 2026 - March 2026
